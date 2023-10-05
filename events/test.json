@@ -1,0 +1,9 @@
+{
+  "type": "CREATE_IN_BLOCK",
+  "payload": {
+    "categoryGuild": { "name": "29/03/2003 TEST" },
+    "roleName": "laboTech",
+    "textChannel": "canal test de text",
+    "voiceChannel": "canale test de voice"
+  }
+}

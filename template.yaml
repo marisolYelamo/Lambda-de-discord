@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  lambda-template
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+
+Parameters:
+  NodeEnv:
+    Type: String
+  discordApiKey:
+    Type: String
+  discordApiUrl:
+    Type: String
+  discordToken:
+    Type: String
+  managerChannelId:
+    Type: String
+
+Resources:
+  DiscordFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Environment:
+        Variables:
+          #Fill with variables needed
+          NodeEnv: !Ref NodeEnv
+          discordApiKey: !Ref discordApiKey
+          discordApiUrl: !Ref discordApiUrl
+          discordToken: !Ref discordToken
+          managerChannelId: !Ref managerChannelId
+      CodeUri: src/
+      Handler: app.lambdaHandler
+      Layers:
+        - !Ref DiscordLayer
+      Runtime: nodejs18.x
+      Architectures:
+        - x86_64
+      Events:
+        AddRoleToUser:
+          Type: Api
+          Properties:
+            Path: /user/roles
+            Method: post
+            RestApiId:
+              Ref: DiscordApi
+        RemoveRoleFromUser:
+          Type: Api
+          Properties:
+            Path: /user/roles
+            Method: patch
+            RestApiId:
+              Ref: DiscordApi
+        CreateInBlock:
+          Type: Api
+          Properties:
+            Path: /block
+            Method: post
+            RestApiId:
+              Ref: DiscordApi
+        SendChannelMessage:
+          Type: Api
+          Properties:
+            Path: /channel/message
+            Method: post
+            RestApiId:
+              Ref: DiscordApi
+        DeleteInBlock:
+          Type: Api
+          Properties:
+            Path: /block
+            Method: delete
+            RestApiId:
+              Ref: DiscordApi
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - app.ts
+        External:
+          - axios
+
+  DiscordLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: discord-app-dependencies
+      Description: Dependencies for discord lambda
+      ContentUri: dependencies/
+      CompatibleRuntimes:
+        - nodejs18.x
+      LicenseInfo: "MIT"
+      RetentionPolicy: Retain
+    Metadata: # Manage esbuild properties
+      BuildMethod: nodejs18.x
+
+  DiscordApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      ApiKeySourceType: HEADER
+      Auth:
+        ApiKeyRequired: true
+
+Outputs:
+  DiscordFunction:
+    Description: "Discord Lambda Function ARN"
+    Value: !GetAtt DiscordFunction.Arn
+  DiscordFunctionIamRole:
+    Description: "Implicit IAM Role created for Discord function"
+    Value: !GetAtt DiscordFunctionRole.Arn
